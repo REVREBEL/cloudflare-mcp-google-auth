@@ -97,7 +97,7 @@ export async function fetchUpstreamAuthToken({
 }
 
 // Context from the auth process, encrypted & stored in the auth token
-// and provided to the MyMCP as this.props
+// and provided to the MCP_GOOGLE_DB as this.props
 export type Props = {
 	name: string;
 	email: string;

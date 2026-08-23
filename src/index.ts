@@ -5,16 +5,16 @@ import { z } from "zod";
 import { GoogleHandler } from "./google-handler";
 
 // Context from the auth process, encrypted & stored in the auth token
-// and provided to the MyMCP as this.props
+// and provided to the MCP_GOOGLE_DB as this.props
 type Props = {
 	name: string;
 	email: string;
 	accessToken: string;
 };
 
-export class MyMCP extends McpAgent<Env, Record<string, never>, Props> {
+export class MCP_GOOGLE_DB extends McpAgent<Env, Record<string, never>, Props> {
 	server = new McpServer({
-		name: "Google OAuth Proxy Demo",
+		name: "Google OAuth Proxy",
 		version: "0.0.1",
 	});
 
@@ -26,7 +26,7 @@ export class MyMCP extends McpAgent<Env, Record<string, never>, Props> {
 }
 
 export default new OAuthProvider({
-	apiHandler: MyMCP.serve("/mcp"),
+	apiHandler: MCP_GOOGLE_DB.serve("/mcp"),
 	apiRoute: "/mcp",
 	authorizeEndpoint: "/authorize",
 	clientRegistrationEndpoint: "/register",
