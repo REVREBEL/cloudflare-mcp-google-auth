@@ -107,11 +107,13 @@ export async function refreshGoogleAccessToken({
 }
 
 // Context encrypted into the local OAuth grant and exposed to the protected MCP handler.
+// The refresh fields are optional so grants created before refresh-token support can be
+// recognized and migrated through reauthorization instead of failing with undefined values.
 export type Props = {
-	googleUserId: string;
+	googleUserId?: string;
 	name: string;
 	email: string;
 	accessToken: string;
-	refreshToken: string;
-	accessTokenExpiresAt: number;
+	refreshToken?: string;
+	accessTokenExpiresAt?: number;
 };
