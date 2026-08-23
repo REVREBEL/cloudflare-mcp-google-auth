@@ -27,9 +27,8 @@
 	"allowScripts": {
 		"core-js-pure@3.50.0": true,
 		"fsevents@2.3.3": true,
-		"workerd@1.20250718.0": true,
-		"esbuild@0.28.2": true,
-		"esbuild@0.17.19": true,
-		"sharp@0.33.5": true
+		"sharp@0.33.5": true,
+		"workerd@1.20260820.1": true,
+		"esbuild@0.28.1": true
 	}
 }
