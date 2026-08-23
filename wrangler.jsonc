@@ -10,8 +10,7 @@
   "name": "mcp-google-oauth",
   "main": "src/index.ts",
   "compatibility_date": "2025-03-10",
-  "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "migrations": [
     {
       "new_sqlite_classes": ["MCP_GOOGLE_DB"],
