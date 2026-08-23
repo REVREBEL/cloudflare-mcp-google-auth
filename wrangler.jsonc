@@ -13,41 +13,41 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "migrations": [
     {
-      "new_sqlite_classes": ["MCP_GOOGLE_DB"],
+      "new_sqlite_classes": ["MCP_DB"],
       "tag": "v1",
     },
   ],
   "durable_objects": {
     "bindings": [
       {
-        "class_name": "MCP_GOOGLE_DB",
+        "class_name": "MCP_DB",
         "name": "MCP_OBJECT",
       },
     ],
   },
   "kv_namespaces": [
     {
-      "binding": "MCP_GOOGLE_OAUTH",
-      "id": "ef99c9f6ce964d028fc691566daa20cf",
+      "binding": "OAUTH_KV",
+      "id": "6b673f3b26914127b34f8a5d8ec7bb53",
     },
   ],
   "observability": {
-    "enabled": true,
+    "enabled": false,
     "head_sampling_rate": 1,
     "logs": {
       "enabled": true,
       "head_sampling_rate": 1,
       "persist": true,
-      "invocation_logs": true,
+      "invocation_logs": true
     },
     "traces": {
-      "enabled": false,
+      "enabled": true,
       "persist": true,
-      "head_sampling_rate": 1,
-    },
+      "head_sampling_rate": 1
+    }
   },
   "dev": {
-    "port": 5555,
+    "port": 5557,
   },
   "vars": {
     "GOOGLE_OAUTH_SCOPES": "https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.freebusy https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendars",
