@@ -1,14 +1,5 @@
 /**
  * Constructs an authorization URL for an upstream service.
- *
- * @param {Object} options
- * @param {string} options.upstream_url - The base URL of the upstream service.
- * @param {string} options.client_id - The client ID of the application.
- * @param {string} options.redirect_uri - The redirect URI of the application.
- * @param {string} [options.state] - The state parameter.
- * @param {string} [options.hosted_domain] - The hosted domain parameter.
- *
- * @returns {string} The authorization URL.
  */
 export function getUpstreamAuthorizeUrl({
 	upstreamUrl,
@@ -17,6 +8,9 @@ export function getUpstreamAuthorizeUrl({
 	redirectUri,
 	state,
 	hostedDomain,
+	accessType,
+	prompt,
+	includeGrantedScopes,
 }: {
 	upstreamUrl: string;
 	clientId: string;
@@ -24,6 +18,9 @@ export function getUpstreamAuthorizeUrl({
 	redirectUri: string;
 	state?: string;
 	hostedDomain?: string;
+	accessType?: "online" | "offline";
+	prompt?: string;
+	includeGrantedScopes?: boolean;
 }) {
 	const upstream = new URL(upstreamUrl);
 	upstream.searchParams.set("client_id", clientId);
@@ -32,74 +29,89 @@ export function getUpstreamAuthorizeUrl({
 	upstream.searchParams.set("response_type", "code");
 	if (state) upstream.searchParams.set("state", state);
 	if (hostedDomain) upstream.searchParams.set("hd", hostedDomain);
+	if (accessType) upstream.searchParams.set("access_type", accessType);
+	if (prompt) upstream.searchParams.set("prompt", prompt);
+	if (includeGrantedScopes) upstream.searchParams.set("include_granted_scopes", "true");
 	return upstream.href;
 }
 
-/**
- * Fetches an authorization token from an upstream service.
- *
- * @param {Object} options
- * @param {string} options.client_id - The client ID of the application.
- * @param {string} options.client_secret - The client secret of the application.
- * @param {string} options.code - The authorization code.
- * @param {string} options.redirect_uri - The redirect URI of the application.
- * @param {string} options.upstream_url - The token endpoint URL of the upstream service.
- * @param {string} options.grant_type - The grant type.
- *
- * @returns {Promise<[string, null] | [null, Response]>} A promise that resolves to an array containing the access token or an error response.
- */
-export async function fetchUpstreamAuthToken({
+export type GoogleTokenResponse = {
+	access_token: string;
+	expires_in: number;
+	refresh_token?: string;
+	scope?: string;
+	token_type?: string;
+};
+
+async function fetchGoogleToken(body: URLSearchParams): Promise<GoogleTokenResponse> {
+	const response = await fetch("https://oauth2.googleapis.com/token", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
+		},
+		body: body.toString(),
+	});
+
+	if (!response.ok) {
+		const errorBody = await response.text();
+		console.error(`Google OAuth token request failed (${response.status}): ${errorBody}`);
+		throw new Error(`Google OAuth token request failed with status ${response.status}`);
+	}
+
+	const token = (await response.json()) as GoogleTokenResponse;
+	if (!token.access_token) {
+		throw new Error("Google OAuth token response did not include an access token");
+	}
+	return token;
+}
+
+export async function exchangeGoogleAuthorizationCode({
 	clientId,
 	clientSecret,
 	code,
 	redirectUri,
-	upstreamUrl,
-	grantType,
 }: {
-	code: string | undefined;
-	upstreamUrl: string;
-	clientSecret: string;
-	redirectUri: string;
 	clientId: string;
-	grantType: string;
-}): Promise<[string, null] | [null, Response]> {
-	if (!code) {
-		return [null, new Response("Missing code", { status: 400 })];
-	}
-
-	const resp = await fetch(upstreamUrl, {
-		body: new URLSearchParams({
+	clientSecret: string;
+	code: string;
+	redirectUri: string;
+}): Promise<GoogleTokenResponse> {
+	return fetchGoogleToken(
+		new URLSearchParams({
 			client_id: clientId,
 			client_secret: clientSecret,
 			code,
-			grant_type: grantType,
+			grant_type: "authorization_code",
 			redirect_uri: redirectUri,
-		}).toString(),
-		headers: {
-			"Content-Type": "application/x-www-form-urlencoded",
-		},
-		method: "POST",
-	});
-	if (!resp.ok) {
-		console.log(await resp.text());
-		return [null, new Response("Failed to fetch access token", { status: 500 })];
-	}
-
-	interface authTokenResponse {
-		access_token: string;
-	}
-
-	const body = (await resp.json()) as authTokenResponse;
-	if (!body.access_token) {
-		return [null, new Response("Missing access token", { status: 400 })];
-	}
-	return [body.access_token, null];
+		}),
+	);
 }
 
-// Context from the auth process, encrypted & stored in the auth token
-// and provided to the MCP_GOOGLE_DB as this.props
+export async function refreshGoogleAccessToken({
+	clientId,
+	clientSecret,
+	refreshToken,
+}: {
+	clientId: string;
+	clientSecret: string;
+	refreshToken: string;
+}): Promise<GoogleTokenResponse> {
+	return fetchGoogleToken(
+		new URLSearchParams({
+			client_id: clientId,
+			client_secret: clientSecret,
+			refresh_token: refreshToken,
+			grant_type: "refresh_token",
+		}),
+	);
+}
+
+// Context encrypted into the local OAuth grant and exposed to the protected MCP handler.
 export type Props = {
+	googleUserId: string;
 	name: string;
 	email: string;
 	accessToken: string;
+	refreshToken: string;
+	accessTokenExpiresAt: number;
 };
