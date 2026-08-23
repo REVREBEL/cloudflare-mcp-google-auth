@@ -147,6 +147,10 @@ The expected flow is:
 
 ## Token refresh behavior
 
-Google's refresh token is retained in encrypted OAuth grant props. The proxy keeps a short-lived in-memory cache of refreshed Google access tokens. If the stored access token is expired, or Google's MCP returns `401`, the Worker uses the Google refresh token plus the Worker-side client secret to mint a new Google access token and retries once.
+Google's refresh token is retained in encrypted OAuth grant props. The proxy keeps a bounded, isolate-local LRU cache of Google access tokens, removes entries when they reach the refresh window, and caps the cache at 100 users. If the stored access token is expired, or Google's MCP returns `401`, the Worker uses the Google refresh token plus the Worker-side client secret to mint a new Google access token and retries once.
 
 The in-memory cache is an optimization only. A new Worker isolate can always refresh from the encrypted grant props.
+
+### Legacy grants
+
+OAuth grants created before refresh-token support contain only the original Google access token plus user metadata. The proxy detects those grants and continues using their existing access token while Google still accepts it. Once Google rejects that token, the Worker returns `401 invalid_token` so the MCP connection can be reauthorized rather than attempting a refresh with missing credentials.
