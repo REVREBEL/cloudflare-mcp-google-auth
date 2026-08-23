@@ -45,10 +45,6 @@
 		}
   },
   "dev": {
-    "port": 8788
-  },
-    "vars": {
-    "GOOGLE_REDIRECT_URI": "https://remote-mcp.revrebel.io/oauth/callback",
-    "GOOGLE_OAUTH_SCOPES": "https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.freebusy https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendars"
+    "port": 5555
   }
 }
