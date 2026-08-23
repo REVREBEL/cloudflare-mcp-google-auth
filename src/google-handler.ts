@@ -25,7 +25,7 @@ app.get("/authorize", async (c) => {
 	// Check if client is already approved
 	if (await isClientApproved(c.req.raw, clientId, c.env.COOKIE_ENCRYPTION_KEY)) {
 		// Skip approval dialog but still create secure state and bind to session
-		const { stateToken } = await createOAuthState(oauthReqInfo, c.env.MCP_GOOGLE_OAUTH);
+		const { stateToken } = await createOAuthState(oauthReqInfo, c.env.OAUTH_KV);
 		const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
 		return redirectToGoogle(c.req.raw, c.env, stateToken, {
 			"Set-Cookie": sessionBindingCookie,
@@ -80,7 +80,7 @@ app.post("/authorize", async (c) => {
 		);
 
 		// Create OAuth state and bind it to this user's session
-		const { stateToken } = await createOAuthState(state.oauthReqInfo, c.env.MCP_GOOGLE_OAUTH);
+		const { stateToken } = await createOAuthState(state.oauthReqInfo, c.env.OAUTH_KV);
 		const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
 
 		// Set both cookies: approved client list + session binding
@@ -144,7 +144,7 @@ app.get("/callback", async (c) => {
 	let clearSessionCookie: string;
 
 	try {
-		const result = await validateOAuthState(c.req.raw, c.env.MCP_GOOGLE_OAUTH);
+		const result = await validateOAuthState(c.req.raw, c.env.OAUTH_KV);
 		oauthReqInfo = result.oauthReqInfo;
 		clearSessionCookie = result.clearCookie;
 	} catch (error: any) {
