@@ -13,7 +13,7 @@
 		"@cloudflare/workers-oauth-provider": "^0.10.0",
 		"@types/node": "20.19.43",
 		"agents": "^0.21.0",
-		"esbuild": "^0.17.19",
+		"esbuild": "^0.28.0",
 		"hono": "^4.12.27",
 		"just-pick": "^4.2.0",
 		"sharp": "^0.33.5",
