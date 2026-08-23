@@ -7,29 +7,90 @@ import { GoogleHandler } from "./google-handler";
 import { refreshGoogleAccessToken, type Props } from "./utils";
 
 const TOKEN_REFRESH_SKEW_MS = 60_000;
+const GOOGLE_TOKEN_CACHE_MAX_ENTRIES = 100;
 
 type CachedGoogleToken = {
 	accessToken: string;
 	expiresAt: number;
 };
 
+class ReauthorizationRequiredError extends Error {
+	constructor(message = "Google authorization must be renewed") {
+		super(message);
+		this.name = "ReauthorizationRequiredError";
+	}
+}
+
 // This cache is an optimization only. The refresh token remains encrypted in OAuth props,
 // so a new Worker isolate can always mint a fresh Google access token when needed.
+// Entries are bounded and evicted when expired to avoid retaining plaintext tokens indefinitely.
 const googleAccessTokenCache = new Map<string, CachedGoogleToken>();
+
+function hasRefreshMetadata(
+	props: Props,
+): props is Props & Required<Pick<Props, "googleUserId" | "refreshToken" | "accessTokenExpiresAt">> {
+	return Boolean(
+		props.googleUserId &&
+			props.refreshToken &&
+			typeof props.accessTokenExpiresAt === "number" &&
+			Number.isFinite(props.accessTokenExpiresAt),
+	);
+}
+
+function pruneGoogleAccessTokenCache(now: number): void {
+	for (const [userId, token] of googleAccessTokenCache) {
+		if (token.expiresAt <= now + TOKEN_REFRESH_SKEW_MS) {
+			googleAccessTokenCache.delete(userId);
+		}
+	}
+}
+
+function getCachedGoogleAccessToken(userId: string, now: number): string | undefined {
+	pruneGoogleAccessTokenCache(now);
+	const cached = googleAccessTokenCache.get(userId);
+	if (!cached) return undefined;
+
+	// Touch the entry so Map insertion order acts as a lightweight LRU.
+	googleAccessTokenCache.delete(userId);
+	googleAccessTokenCache.set(userId, cached);
+	return cached.accessToken;
+}
+
+function cacheGoogleAccessToken(userId: string, accessToken: string, expiresAt: number, now: number): void {
+	pruneGoogleAccessTokenCache(now);
+	googleAccessTokenCache.delete(userId);
+
+	while (googleAccessTokenCache.size >= GOOGLE_TOKEN_CACHE_MAX_ENTRIES) {
+		const oldestUserId = googleAccessTokenCache.keys().next().value as string | undefined;
+		if (!oldestUserId) break;
+		googleAccessTokenCache.delete(oldestUserId);
+	}
+
+	googleAccessTokenCache.set(userId, { accessToken, expiresAt });
+}
 
 async function resolveGoogleAccessToken(env: Env, props: Props, forceRefresh = false): Promise<string> {
 	const now = Date.now();
-	const cached = googleAccessTokenCache.get(props.googleUserId);
 
-	if (!forceRefresh && cached && cached.expiresAt > now + TOKEN_REFRESH_SKEW_MS) {
-		return cached.accessToken;
+	// Grants minted before refresh-token support contain only accessToken/name/email.
+	// Continue serving that access token while Google accepts it; once it is rejected,
+	// require a fresh OAuth login rather than attempting to refresh undefined credentials.
+	if (!hasRefreshMetadata(props)) {
+		if (!forceRefresh && props.accessToken) {
+			return props.accessToken;
+		}
+		throw new ReauthorizationRequiredError("Legacy Google OAuth grant requires reauthorization");
+	}
+
+	if (!forceRefresh) {
+		const cachedAccessToken = getCachedGoogleAccessToken(props.googleUserId, now);
+		if (cachedAccessToken) {
+			return cachedAccessToken;
+		}
 	}
 
 	if (!forceRefresh && props.accessTokenExpiresAt > now + TOKEN_REFRESH_SKEW_MS) {
-		googleAccessTokenCache.set(props.googleUserId, {
-			accessToken: props.accessToken,
-			expiresAt: props.accessTokenExpiresAt,
-		});
+		cacheGoogleAccessToken(props.googleUserId, props.accessToken, props.accessTokenExpiresAt, now);
 		return props.accessToken;
 	}
 
@@ -40,11 +101,7 @@ async function resolveGoogleAccessToken(env: Env, props: Props, forceRefresh = f
 	});
 	const expiresAt = now + refreshed.expires_in * 1000;
 
-	googleAccessTokenCache.set(props.googleUserId, {
-		accessToken: refreshed.access_token,
-		expiresAt,
-	});
-
+	cacheGoogleAccessToken(props.googleUserId, refreshed.access_token, expiresAt, now);
 	return refreshed.access_token;
 }
 
@@ -121,6 +178,15 @@ class GoogleCalendarMcpProxy extends WorkerEntrypoint<Env, Props> {
 			const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
 			return await forwardToGoogleCalendarMcp(request, this.env, this.ctx.props, body);
 		} catch (error) {
+			if (error instanceof ReauthorizationRequiredError) {
+				return new Response("Google authorization expired. Reauthorize this MCP connection.", {
+					status: 401,
+					headers: {
+						"WWW-Authenticate": 'Bearer error="invalid_token", error_description="Google authorization must be renewed"',
+					},
+				});
+			}
+
 			console.error("Google Calendar MCP proxy request failed", error);
 			return new Response("Google Calendar MCP proxy request failed", { status: 502 });
 		}
