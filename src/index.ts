@@ -194,7 +194,7 @@ class GoogleCalendarMcpProxy extends WorkerEntrypoint<Env, Props> {
 }
 
 // Retained for the existing Durable Object migration/binding. It is no longer the public MCP API.
-export class MCP_GOOGLE_DB extends McpAgent<Env, Record<string, never>, Props> {
+export class MCP_DB extends McpAgent<Env, Record<string, never>, Props> {
 	server = new McpServer({
 		name: "Google OAuth Proxy Internal",
 		version: "0.0.1",
