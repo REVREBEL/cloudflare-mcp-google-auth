@@ -1,7 +1,10 @@
 /**
  * For more details on how to configure Wrangler, refer to:
  * https://developers.cloudflare.com/workers/wrangler/configuration/
+ *
+ * @format
  */
+
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mcp-google-oauth",
@@ -12,39 +15,42 @@
   "migrations": [
     {
       "new_sqlite_classes": ["MCP_GOOGLE_DB"],
-      "tag": "v1"
-    }
+      "tag": "v1",
+    },
   ],
   "durable_objects": {
     "bindings": [
       {
         "class_name": "MCP_GOOGLE_DB",
-        "name": "MCP_OBJECT"
-      }
-    ]
+        "name": "MCP_OBJECT",
+      },
+    ],
   },
   "kv_namespaces": [
     {
       "binding": "MCP_GOOGLE_OAUTH",
-      "id": "ef99c9f6ce964d028fc691566daa20cf"
-    }
+      "id": "ef99c9f6ce964d028fc691566daa20cf",
+    },
   ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
-		"logs": {
-			"enabled": true,
-			"head_sampling_rate": 1,
-			"persist": true,
-			"invocation_logs": true
-		},
-		"traces": {
-			"enabled": false,
-			"persist": true,
-			"head_sampling_rate": 1
-		}
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true,
+    },
+    "traces": {
+      "enabled": false,
+      "persist": true,
+      "head_sampling_rate": 1,
+    },
   },
   "dev": {
-    "port": 5555
-  }
+    "port": 5555,
+  },
+  "vars": {
+    "GOOGLE_OAUTH_SCOPES": "https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.freebusy https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendars",
+  },
 }
