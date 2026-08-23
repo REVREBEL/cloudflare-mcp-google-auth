@@ -4,6 +4,8 @@ interface Env {
   MCP_GOOGLE_OAUTH: KVNamespace;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_OAUTH_SCOPES: string;
+  GOOGLE_MCP_URL: string;
   COOKIE_ENCRYPTION_KEY: string;
   HOSTED_DOMAIN: string;
   MCP_OBJECT: DurableObjectNamespace<import("./src/index").MCP_GOOGLE_DB>;
