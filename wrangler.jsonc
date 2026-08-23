@@ -52,5 +52,6 @@
   },
   "vars": {
     "GOOGLE_OAUTH_SCOPES": "https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.freebusy https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/calendar.calendars",
+    "GOOGLE_MCP_URL": "https://calendarmcp.googleapis.com/mcp/v1",
   },
 }
