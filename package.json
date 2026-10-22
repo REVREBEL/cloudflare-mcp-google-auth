@@ -10,7 +10,7 @@
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@cloudflare/workers-oauth-provider": "^0.10.0",
+		"@cloudflare/workers-oauth-provider": "^1.0.0",
 		"@types/node": "24.13.3",
 		"agents": "^0.21.0",
 		"esbuild": "^0.28.0",
